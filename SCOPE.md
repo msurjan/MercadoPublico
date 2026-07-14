@@ -68,3 +68,26 @@ para una Fase 2 ("Módulo de Análisis de Mercado").
   contra API de gobierno) → se opta por script Python local.
 - 2026-07-14: Se corrige supuesto inicial: Compra Ágil sí soporta
   búsqueda por keyword (`q=`), a diferencia de Licitaciones.
+- 2026-07-14: **v1.0 declarado MVP completo y estable.** Funcionando:
+  Motor 1 (Licitaciones + Compra Ágil por habilidad) y Motor 2
+  (Compra Ágil sin filtrar, acotado a región). Links verificados
+  manualmente por el usuario. Se congela el alcance aquí.
+
+## Candidatos a Fase 2 (explícitamente NO en v1.0)
+
+Evaluados y pospuestos a propósito — no se construyen hasta abrir un
+Scope nuevo para cada uno:
+
+- **Favoritos**: guardar códigos marcados para revisar después.
+- **Ordenar por categoría**: pendiente verificar si el campo categoría
+  viene en el listado básico de cada API o si requiere una llamada de
+  detalle adicional por resultado (afecta cuota diaria).
+- **"Perfil Validado" con IA**: leer la ficha completa de una
+  licitación/Compra Ágil seleccionada, generar resumen, plan de acción
+  y estimación de tiempo vía una API de IA. Esto es un **proyecto
+  separado**, no una función del buscador — requiere su propio Scope,
+  su propia arquitectura (llamada a API de IA, manejo de costos por
+  uso, diseño de la pantalla de resultado) y se evalúa recién después
+  de que v1.0 lleve semanas de uso real.
+- **Órdenes de Compra / Módulo de Análisis de Mercado**: ver sección
+  anterior, sigue pendiente desde el diseño original.
