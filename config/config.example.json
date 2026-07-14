@@ -1,0 +1,10 @@
+{
+  "ticket": "PEGA_TU_TICKET_AQUI",
+  "licitaciones": {
+    "dias_hacia_atras": 3
+  },
+  "compra_agil": {
+    "region": null,
+    "dias_hacia_atras": 3
+  }
+}
