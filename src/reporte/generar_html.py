@@ -54,6 +54,12 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .monto { font-family: var(--mono); text-align: right; }
 .vacio { color: var(--text-dim); font-style: italic; padding: 24px; text-align: center; }
+.btn-fav {
+  background: none; border: none; cursor: pointer; font-size: 16px;
+  color: var(--text-dim); padding: 2px 4px;
+}
+.btn-fav:hover { color: #e3b341; }
+label.chk { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
 """
 
 JS = """
@@ -68,6 +74,8 @@ function filtrarTabla(prefijo) {
   const texto = (document.getElementById(`${prefijo}-buscar`).value || '').toLowerCase();
   const montoMin = parseFloat(document.getElementById(`${prefijo}-monto-min`).value) || 0;
   const organismo = document.getElementById(`${prefijo}-organismo`).value;
+  const soloFavEl = document.getElementById(`${prefijo}-solo-favoritos`);
+  const soloFavoritos = soloFavEl && soloFavEl.checked;
 
   const filas = document.querySelectorAll(`#tabla-${prefijo} tbody tr`);
   let visibles = 0;
@@ -75,16 +83,37 @@ function filtrarTabla(prefijo) {
     const nombre = (fila.dataset.nombre || '').toLowerCase();
     const org = fila.dataset.organismo || '';
     const monto = parseFloat(fila.dataset.monto) || 0;
+    const esFavorito = fila.dataset.favorito === 'true';
 
     const pasaTexto = !texto || nombre.includes(texto);
     const pasaMonto = monto >= montoMin;
     const pasaOrganismo = !organismo || org === organismo;
+    const pasaFavorito = !soloFavoritos || esFavorito;
 
-    const visible = pasaTexto && pasaMonto && pasaOrganismo;
+    const visible = pasaTexto && pasaMonto && pasaOrganismo && pasaFavorito;
     fila.style.display = visible ? '' : 'none';
     if (visible) visibles++;
   });
   document.getElementById(`${prefijo}-contador`).textContent = `${visibles} de ${filas.length} resultados`;
+}
+
+async function toggleFavorito(boton) {
+  const codigo = boton.dataset.codigo;
+  const nuevoEstado = boton.textContent.trim() !== '\u2605';
+  try {
+    const resp = await fetch('/api/favorito', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({codigo: codigo, favorito: nuevoEstado})
+    });
+    if (!resp.ok) throw new Error('respuesta no OK');
+    boton.textContent = nuevoEstado ? '\u2605' : '\u2606';
+    boton.closest('tr').dataset.favorito = nuevoEstado ? 'true' : 'false';
+    const prefijo = boton.closest('table').id.replace('tabla-', '');
+    filtrarTabla(prefijo);
+  } catch (e) {
+    alert('No se pudo guardar el favorito. ¿Sigue abierta la ventana del programa (la consola negra)?');
+  }
 }
 """
 
@@ -98,7 +127,7 @@ def _formatear_monto(valor) -> str:
         return "\u2014"
 
 
-def _fila_licitacion(lic: dict) -> str:
+def _fila_licitacion(lic: dict, favoritos: dict) -> str:
     codigo = lic.get("CodigoExterno", "")
     nombre = lic.get("Nombre", "(sin nombre)")
     comprador = lic.get("Comprador") or {}
@@ -107,9 +136,13 @@ def _fila_licitacion(lic: dict) -> str:
     fecha_cierre = lic.get("FechaCierre", "")
     monto = lic.get("MontoEstimado")
     url = f"https://www.mercadopublico.cl/Procurement/Modules/RFB/DetailsAcquisition.aspx?idlicitacion={codigo}"
+    es_favorito = codigo in favoritos
+    estrella = "\u2605" if es_favorito else "\u2606"
 
     return (
-        f'<tr data-nombre="{nombre}" data-organismo="{organismo}" data-monto="{monto or 0}">'
+        f'<tr data-nombre="{nombre}" data-organismo="{organismo}" data-monto="{monto or 0}" '
+        f'data-favorito="{"true" if es_favorito else "false"}">'
+        f'<td><button class="btn-fav" data-codigo="{codigo}" onclick="toggleFavorito(this)">{estrella}</button></td>'
         f'<td><a href="{url}" target="_blank">{codigo}</a></td>'
         f'<td>{nombre}</td>'
         f'<td>{organismo}</td>'
@@ -120,7 +153,7 @@ def _fila_licitacion(lic: dict) -> str:
     )
 
 
-def _fila_compra_agil(ca: dict) -> str:
+def _fila_compra_agil(ca: dict, favoritos: dict) -> str:
     codigo = ca.get("codigo", "")
     nombre = ca.get("nombre", "(sin nombre)")
     institucion = ca.get("institucion") or {}
@@ -132,9 +165,13 @@ def _fila_compra_agil(ca: dict) -> str:
     fechas = ca.get("fechas") or {}
     fecha_cierre = fechas.get("fecha_cierre", "")
     url = f"https://compra-agil.mercadopublico.cl/resumen-cotizacion/{codigo}"
+    es_favorito = codigo in favoritos
+    estrella = "\u2605" if es_favorito else "\u2606"
 
     return (
-        f'<tr data-nombre="{nombre}" data-organismo="{organismo}" data-monto="{monto or 0}">'
+        f'<tr data-nombre="{nombre}" data-organismo="{organismo}" data-monto="{monto or 0}" '
+        f'data-favorito="{"true" if es_favorito else "false"}">'
+        f'<td><button class="btn-fav" data-codigo="{codigo}" onclick="toggleFavorito(this)">{estrella}</button></td>'
         f'<td><a href="{url}" target="_blank">{codigo}</a></td>'
         f'<td>{nombre}</td>'
         f'<td>{organismo}</td>'
@@ -147,7 +184,7 @@ def _fila_compra_agil(ca: dict) -> str:
 
 def _tabla(prefijo: str, filas_html: str, organismos: list) -> str:
     opciones = "".join(f'<option value="{o}">{o}</option>' for o in sorted(set(organismos)) if o)
-    filas_html = filas_html or '<tr><td colspan="6" class="vacio">Sin resultados.</td></tr>'
+    filas_html = filas_html or '<tr><td colspan="7" class="vacio">Sin resultados.</td></tr>'
 
     return f"""
     <div class="filtros">
@@ -157,25 +194,30 @@ def _tabla(prefijo: str, filas_html: str, organismos: list) -> str:
         <option value="">Todos los organismos</option>
         {opciones}
       </select>
+      <label class="chk"><input type="checkbox" id="{prefijo}-solo-favoritos" onchange="filtrarTabla('{prefijo}')"> Solo favoritos</label>
     </div>
     <div class="contador" id="{prefijo}-contador"></div>
     <table id="tabla-{prefijo}">
-      <thead><tr><th>Codigo</th><th>Nombre</th><th>Organismo</th><th>Estado</th><th>Cierre</th><th>Monto</th></tr></thead>
+      <thead><tr><th>\u2605</th><th>Codigo</th><th>Nombre</th><th>Organismo</th><th>Estado</th><th>Cierre</th><th>Monto</th></tr></thead>
       <tbody>{filas_html}</tbody>
     </table>
     """
 
 
-def generar_reporte(licitaciones_filtradas, compra_agil_filtrada, compra_agil_todas, keywords, ruta_salida):
+def generar_reporte(licitaciones_filtradas, compra_agil_filtrada, compra_agil_todas, keywords, ruta_salida, favoritos=None):
     """
     Genera el archivo HTML final con 3 pestanas:
     - Licitaciones que coinciden con tus habilidades (Motor 1).
     - Compra Agil que coincide con tus habilidades (Motor 1, via q=).
     - Compra Agil completa sin filtrar, con filtros interactivos (Motor 2).
+
+    favoritos: dict {codigo: True} cargado desde data/favoritos.json.
     """
-    filas_lic = "".join(_fila_licitacion(l) for l in licitaciones_filtradas)
-    filas_ca_match = "".join(_fila_compra_agil(c) for c in compra_agil_filtrada)
-    filas_ca_todas = "".join(_fila_compra_agil(c) for c in compra_agil_todas)
+    favoritos = favoritos or {}
+
+    filas_lic = "".join(_fila_licitacion(l, favoritos) for l in licitaciones_filtradas)
+    filas_ca_match = "".join(_fila_compra_agil(c, favoritos) for c in compra_agil_filtrada)
+    filas_ca_todas = "".join(_fila_compra_agil(c, favoritos) for c in compra_agil_todas)
 
     organismos_lic = [l.get("NombreOrganismo", "") for l in licitaciones_filtradas]
     organismos_ca_match = [(c.get("institucion") or {}).get("organismo_comprador", "") for c in compra_agil_filtrada]

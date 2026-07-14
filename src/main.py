@@ -1,22 +1,27 @@
 """
-Punto de entrada. Orquesta: leer config, leer keywords, llamar a ambas
-APIs, filtrar por habilidad, generar el reporte HTML y abrirlo en el
-navegador. Se ejecuta con doble clic via ejecutar.bat.
+Punto de entrada para ejecutar.bat. Carga config/keywords, corre la
+busqueda via motor.py, genera el reporte y levanta el servidor local.
+
+Toda la logica de busqueda vive en motor.py para que el boton
+"Buscar ahora" del navegador (via servidor.py) pueda invocar exactamente
+lo mismo sin duplicar codigo.
 """
 import json
 import os
 import sys
-import webbrowser
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from clientes import licitaciones_client, compra_agil_client
-from filtrado import filtrar_licitaciones
+import motor
+import servidor
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUTA_CONFIG = os.path.join(RAIZ, "config", "config.local.json")
 RUTA_KEYWORDS = os.path.join(RAIZ, "keywords.txt")
+RUTA_ESTADO_LICITACIONES = os.path.join(RAIZ, "data", "historial_licitaciones.json")
+RUTA_ESTADO_COMPRA_AGIL = os.path.join(RAIZ, "data", "historial_compra_agil.json")
+RUTA_FAVORITOS = os.path.join(RAIZ, "data", "favoritos.json")
 RUTA_SALIDA = os.path.join(RAIZ, "output", f"reporte_{datetime.now().strftime('%Y%m%d_%H%M')}.html")
 
 
@@ -41,25 +46,6 @@ def cargar_keywords() -> list:
         return [linea.strip() for linea in f if linea.strip()]
 
 
-def filtrar_compra_agil_por_keywords(ticket: str, keywords: list, dias_hacia_atras: int, region) -> list:
-    """La API acepta una sola keyword por llamada (q=). Se consulta una vez
-    por keyword y se deduplica por codigo. Un error en UNA keyword no debe
-    descartar lo ya encontrado en las demas."""
-    vistos = {}
-    for kw in keywords:
-        try:
-            items = compra_agil_client.buscar_por_keyword(ticket, kw, dias_hacia_atras, region)
-            for item in items:
-                vistos[item.get("codigo")] = item
-        except RuntimeError as e:
-            print(f"  AVISO: {e}")
-            break  # cuota agotada: no tiene sentido seguir intentando otras keywords
-        except Exception as e:
-            print(f"  AVISO: fallo la busqueda de '{kw}' ({e}). Se omite y se sigue con las demas.")
-            continue
-    return list(vistos.values())
-
-
 def main():
     print("=" * 50)
     print("BUSCADOR MERCADO PUBLICO")
@@ -67,49 +53,23 @@ def main():
 
     config = cargar_config()
     keywords = cargar_keywords()
-    ticket = config["ticket"]
-    config_ca = config.get("compra_agil") or {}
-    region = config_ca.get("region")
-    dias_ca = config_ca.get("dias_hacia_atras", 3)
 
-    print(f"Keywords: {', '.join(keywords)}")
+    resultado = motor.ejecutar_busqueda(
+        config, keywords, RUTA_ESTADO_LICITACIONES, RUTA_ESTADO_COMPRA_AGIL
+    )
 
-    print("\n[1/4] Consultando Licitaciones activas...")
-    try:
-        licitaciones = licitaciones_client.obtener_licitaciones_activas(ticket)
-        print(f"  -> {len(licitaciones)} licitaciones activas en total.")
-    except Exception as e:
-        print(f"  ERROR al consultar Licitaciones: {e}")
-        licitaciones = []
-
-    print("[2/4] Filtrando Licitaciones por tus keywords...")
-    licitaciones_filtradas = filtrar_licitaciones(licitaciones, keywords)
-    print(f"  -> {len(licitaciones_filtradas)} coinciden con tus habilidades.")
-
-    print("[3/4] Consultando Compra Agil (por keyword + completa)...")
-    try:
-        ca_filtrada = filtrar_compra_agil_por_keywords(ticket, keywords, dias_ca, region)
-        print(f"  -> {len(ca_filtrada)} coinciden con tus habilidades.")
-    except Exception as e:
-        print(f"  ERROR al consultar Compra Agil (por keyword): {e}")
-        ca_filtrada = []
-
-    try:
-        ca_todas = compra_agil_client.obtener_todas_recientes(ticket, dias_ca, region)
-        print(f"  -> {len(ca_todas)} Compra Agil totales en los ultimos {dias_ca} dias.")
-    except Exception as e:
-        print(f"  ERROR al consultar Compra Agil (completa): {e}")
-        ca_todas = []
-
-    print("[4/4] Generando reporte HTML...")
+    print("\nGenerando reporte HTML...")
     os.makedirs(os.path.dirname(RUTA_SALIDA), exist_ok=True)
+    favoritos_existentes = servidor.cargar_favoritos_existentes(RUTA_FAVORITOS)
 
     from reporte.generar_html import generar_reporte
-    generar_reporte(licitaciones_filtradas, ca_filtrada, ca_todas, keywords, RUTA_SALIDA)
+    generar_reporte(
+        resultado["licitaciones_filtradas"], resultado["ca_filtrada"], resultado["ca_todas"],
+        keywords, RUTA_SALIDA, favoritos_existentes
+    )
     print(f"  -> Reporte generado en: {RUTA_SALIDA}")
 
-    webbrowser.open(f"file://{RUTA_SALIDA}")
-    print("\nListo. El reporte se abrio en tu navegador.")
+    servidor.iniciar_servidor(RUTA_SALIDA, RUTA_FAVORITOS, puerto=8765)
 
 
 if __name__ == "__main__":

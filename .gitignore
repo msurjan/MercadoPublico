@@ -1,0 +1,18 @@
+# Credenciales - NUNCA subir el ticket real
+config/config.local.json
+
+# Datos personales del usuario (favoritos), no son codigo fuente
+data/favoritos.json
+
+# Reportes generados (son output, no código fuente)
+output/*.html
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+Thumbs.db

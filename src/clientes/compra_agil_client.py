@@ -43,17 +43,25 @@ def _paginar(ticket: str, params: dict, etiqueta: str = "") -> list:
     params.setdefault("numero_pagina", 1)
 
     while True:
-        resp = requests.get(BASE_URL, headers=_headers(ticket), params=params, timeout=30)
-        if resp.status_code == 429:
-            raise RuntimeError(
-                "Cuota diaria de la API de Compra Agil agotada. "
-                "Reintenta despues de medianoche (hora del servidor)."
-            )
-        if resp.status_code == 500:
-            print(f"    ... {etiqueta}: error 500 del servidor, reintentando en 3s...")
-            time.sleep(3)
+        try:
             resp = requests.get(BASE_URL, headers=_headers(ticket), params=params, timeout=30)
-        resp.raise_for_status()
+            if resp.status_code == 429:
+                raise RuntimeError(
+                    "Cuota diaria de la API de Compra Agil agotada. "
+                    "Reintenta despues de medianoche (hora del servidor)."
+                )
+            if resp.status_code in (500, 502, 503, 504):
+                print(f"    ... {etiqueta}: error {resp.status_code} del servidor, reintentando en 3s...")
+                time.sleep(3)
+                resp = requests.get(BASE_URL, headers=_headers(ticket), params=params, timeout=30)
+            resp.raise_for_status()
+        except RuntimeError:
+            raise
+        except Exception as e:
+            print(f"    AVISO: '{etiqueta}' fallo en pagina {params.get('numero_pagina')} ({e}). "
+                  f"Se conservan los {len(items)} resultados ya descargados hasta aqui.")
+            break
+
         data = resp.json()
         payload = data.get("payload") or {}
         items.extend(payload.get("items", []))
