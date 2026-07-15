@@ -1,10 +1,10 @@
 {
   "ticket": "3B4EB7B5-6738-448F-ACE3-FC0117EB88C9",
   "licitaciones": {
-    "dias_hacia_atras": 5
+    "dias_hacia_atras": 20
   },
   "compra_agil": {
-    "region": 13,
-    "dias_hacia_atras": 5
+    "region": null,
+    "dias_hacia_atras": 20
   }
 }

@@ -11,7 +11,10 @@ from datetime import datetime, timezone, timedelta
 
 BASE_URL = "https://api2.mercadopublico.cl/v2/compra-agil"
 TAMANO_PAGINA = 50
-MAX_PAGINAS_SEGURIDAD = 20  # tope duro: 20 x 50 = 1000 resultados por keyword como maximo
+# Tope de seguridad real (protege contra bugs/loops infinitos), no un limite
+# practico - con el progreso visible en el navegador ya no hace falta cortar
+# temprano solo para que la espera no parezca "colgada".
+MAX_PAGINAS_SEGURIDAD = 300  # 300 x 50 = 15.000 resultados como maximo absoluto
 
 # Estados relevantes para alguien buscando oportunidades activas u
 # observando resultados recientes. Se excluye 'cancelada' y 'desierta'
@@ -101,13 +104,59 @@ def buscar_por_keyword(ticket: str, keyword: str, dias_hacia_atras: int, region=
     return _paginar(ticket, params, etiqueta=f"keyword='{keyword}'")
 
 
-def obtener_todas_recientes(ticket: str, dias_hacia_atras: int, region=None) -> list:
+LIMITE_API_TOTAL_RESULTADOS = 9500  # margen de seguridad bajo el techo real de 10.000 de la API
+PROFUNDIDAD_MAXIMA_DIVISION = 12    # protege contra recursion infinita si algo sale raro
+
+
+def _consultar_total(ticket: str, params: dict) -> int:
+    """Consulta 1 pagina (tamano minimo valido de la API) para conocer el total_resultados real."""
+    params_prueba = dict(params, tamano_pagina=TAMANO_PAGINA, numero_pagina=1)
+    resp = requests.get(BASE_URL, headers=_headers(ticket), params=params_prueba, timeout=30)
+    resp.raise_for_status()
+    payload = resp.json().get("payload") or {}
+    return payload.get("paginacion", {}).get("total_resultados", 0)
+
+
+def _obtener_rango_seguro(ticket: str, desde: datetime, hasta: datetime, region, log, profundidad: int = 0) -> list:
+    """
+    Trae todos los resultados del rango [desde, hasta]. Si el total roza
+    el techo real de la API (10.000, mas alla del cual la paginacion deja
+    de ser confiable), divide el rango en dos mitades y repite - para que
+    nunca se pierdan resultados por el limite de la API, no del nuestro.
+    """
+    params = {
+        "publicado_desde": desde.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "publicado_hasta": hasta.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    if region:
+        params["region"] = region
+
+    total = _consultar_total(ticket, params)
+    rango_es_divisible = (hasta - desde).total_seconds() > 3600  # no dividir rangos de menos de 1 hora
+
+    if total >= LIMITE_API_TOTAL_RESULTADOS and rango_es_divisible and profundidad < PROFUNDIDAD_MAXIMA_DIVISION:
+        medio = desde + (hasta - desde) / 2
+        log(f"    AVISO: rango {desde.date()} -> {hasta.date()} tiene {total}+ resultados "
+            f"(cerca del techo real de la API). Dividiendo en dos mitades para no perder datos...")
+        parte1 = _obtener_rango_seguro(ticket, desde, medio, region, log, profundidad + 1)
+        parte2 = _obtener_rango_seguro(ticket, medio, hasta, region, log, profundidad + 1)
+        vistos = {c.get("codigo"): c for c in parte1}
+        for c in parte2:
+            vistos[c.get("codigo")] = c
+        return list(vistos.values())
+
+    return _paginar(ticket, params, etiqueta=f"{desde.date()}->{hasta.date()}")
+
+
+def obtener_todas_recientes(ticket: str, dias_hacia_atras: int, region=None, log=print) -> list:
     """
     Trae TODAS las Compras Agiles publicadas en los ultimos N dias, sin
     filtrar por keyword. Alimenta la tabla de navegacion libre del reporte
     (para detectar oportunidades de compra/venta simple fuera de tu expertise).
+
+    Divide automaticamente el rango si se acerca al techo real de 10.000
+    resultados de la API, para garantizar que no queden gaps de fechas.
     """
-    params = _rango_fechas(dias_hacia_atras)
-    if region:
-        params["region"] = region
-    return _paginar(ticket, params, etiqueta="listado completo")
+    ahora = datetime.now(timezone.utc)
+    desde = ahora - timedelta(days=dias_hacia_atras)
+    return _obtener_rango_seguro(ticket, desde, ahora, region, log)

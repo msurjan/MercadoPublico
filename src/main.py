@@ -1,19 +1,19 @@
 """
-Punto de entrada para ejecutar.bat. Carga config/keywords, corre la
-busqueda via motor.py, genera el reporte y levanta el servidor local.
+Punto de entrada para ejecutar.bat. Valida que la configuracion este
+lista y levanta el servidor local con el reporte generado a partir del
+historial ya guardado.
 
-Toda la logica de busqueda vive en motor.py para que el boton
-"Buscar ahora" del navegador (via servidor.py) pueda invocar exactamente
-lo mismo sin duplicar codigo.
+IMPORTANTE: este script YA NO dispara una busqueda automaticamente.
+La busqueda ocurre cuando el usuario aprieta "Buscar ahora" en el tab
+Buscar del navegador. Esto evita gastar cuota de la API y tiempo de
+espera cada vez que simplemente quieres revisar lo que ya tenias.
 """
 import json
 import os
 import sys
-from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import motor
 import servidor
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,11 +21,11 @@ RUTA_CONFIG = os.path.join(RAIZ, "config", "config.local.json")
 RUTA_KEYWORDS = os.path.join(RAIZ, "keywords.txt")
 RUTA_ESTADO_LICITACIONES = os.path.join(RAIZ, "data", "historial_licitaciones.json")
 RUTA_ESTADO_COMPRA_AGIL = os.path.join(RAIZ, "data", "historial_compra_agil.json")
-RUTA_FAVORITOS = os.path.join(RAIZ, "data", "favoritos.json")
-RUTA_SALIDA = os.path.join(RAIZ, "output", f"reporte_{datetime.now().strftime('%Y%m%d_%H%M')}.html")
+RUTA_FRONTERA = os.path.join(RAIZ, "data", "frontera_historica.json")
+RUTA_SALIDA = os.path.join(RAIZ, "output", "reporte_actual.html")
 
 
-def cargar_config() -> dict:
+def validar_config():
     if not os.path.exists(RUTA_CONFIG):
         print("ERROR: no existe config/config.local.json")
         print("Copia config/config.example.json a config/config.local.json y pon tu ticket real.")
@@ -35,15 +35,9 @@ def cargar_config() -> dict:
     if not config.get("ticket") or config["ticket"] == "PEGA_TU_TICKET_AQUI":
         print("ERROR: falta configurar el ticket real en config/config.local.json")
         sys.exit(1)
-    return config
-
-
-def cargar_keywords() -> list:
     if not os.path.exists(RUTA_KEYWORDS):
         print("ERROR: no existe keywords.txt")
         sys.exit(1)
-    with open(RUTA_KEYWORDS, "r", encoding="utf-8") as f:
-        return [linea.strip() for linea in f if linea.strip()]
 
 
 def main():
@@ -51,25 +45,16 @@ def main():
     print("BUSCADOR MERCADO PUBLICO")
     print("=" * 50)
 
-    config = cargar_config()
-    keywords = cargar_keywords()
+    validar_config()
 
-    resultado = motor.ejecutar_busqueda(
-        config, keywords, RUTA_ESTADO_LICITACIONES, RUTA_ESTADO_COMPRA_AGIL
-    )
-
-    print("\nGenerando reporte HTML...")
-    os.makedirs(os.path.dirname(RUTA_SALIDA), exist_ok=True)
-    favoritos_existentes = servidor.cargar_favoritos_existentes(RUTA_FAVORITOS)
-
-    from reporte.generar_html import generar_reporte
-    generar_reporte(
-        resultado["licitaciones_filtradas"], resultado["ca_filtrada"], resultado["ca_todas"],
-        keywords, RUTA_SALIDA, favoritos_existentes
-    )
-    print(f"  -> Reporte generado en: {RUTA_SALIDA}")
-
-    servidor.iniciar_servidor(RUTA_SALIDA, RUTA_FAVORITOS, puerto=8765)
+    servidor.iniciar_servidor({
+        "reporte": RUTA_SALIDA,
+        "keywords": RUTA_KEYWORDS,
+        "config": RUTA_CONFIG,
+        "estado_licitaciones": RUTA_ESTADO_LICITACIONES,
+        "estado_compra_agil": RUTA_ESTADO_COMPRA_AGIL,
+        "frontera": RUTA_FRONTERA,
+    }, puerto=8765)
 
 
 if __name__ == "__main__":

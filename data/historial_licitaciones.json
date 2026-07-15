@@ -2126,7 +2126,7 @@
       "CodigoExterno": "1057491-135-LP26",
       "Nombre": "SERVICIO DE ASEO EDIFICIO PRINCIPAL HLCM",
       "CodigoEstado": 5,
-      "FechaCierre": "2026-07-23T15:00:00"
+      "FechaCierre": "2026-07-27T15:00:00"
     }
   },
   "1057491-136-LE26": {
@@ -17170,7 +17170,7 @@
     }
   },
   "2332-58-LE26": {
-    "estado": "nuevo",
+    "estado": "favorito",
     "primera_vez_visto": "2026-07-14T18:44:33.127517",
     "datos": {
       "CodigoExterno": "2332-58-LE26",
@@ -42257,6 +42257,146 @@
       "Nombre": "Sum. emulsión imprimante y catiónica quiebre lento",
       "CodigoEstado": 5,
       "FechaCierre": "2026-07-30T15:10:00"
+    }
+  },
+  "3945-14-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T18:56:03.092574",
+    "datos": {
+      "CodigoExterno": "3945-14-LE26",
+      "Nombre": "SUMINISTRO DE ALIMENTOS Y OTROS SERVICIOS AFINES-MUNICIPALIDAD DE LOS ALAMOS",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-07-24T15:01:00"
+    }
+  },
+  "858-49-LP26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T19:12:03.389638",
+    "datos": {
+      "CodigoExterno": "858-49-LP26",
+      "Nombre": "Ejecución Proyecto Mejoramiento San Ramón",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-08-04T15:01:00"
+    }
+  },
+  "3340-13-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T19:27:42.583697",
+    "datos": {
+      "CodigoExterno": "3340-13-LE26",
+      "Nombre": "MATERIALES DE FERRETERÍA PARA PACOLLO 13AVA",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-07-20T15:00:00"
+    }
+  },
+  "48-24-LP26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T19:27:42.583697",
+    "datos": {
+      "CodigoExterno": "48-24-LP26",
+      "Nombre": "Fiscalización de Obras Agrupacion N°251",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-08-03T15:00:00"
+    }
+  },
+  "5907-4-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T19:27:42.583697",
+    "datos": {
+      "CodigoExterno": "5907-4-LE26",
+      "Nombre": "SERVICIO ARRIENDO BAÑOS QUÍMICOS FESTIVIDAD SAN LORENZO DE TARAPACÁ",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-07-24T09:00:00"
+    }
+  },
+  "2735-113-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T19:45:13.355379",
+    "datos": {
+      "CodigoExterno": "2735-113-LE26",
+      "Nombre": "ADQUISICIÓN HH INGENIERIA MICROSOFT 365 Y AZURE",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-08-04T12:00:00"
+    }
+  },
+  "1320138-1-LP26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T20:50:20.737097",
+    "datos": {
+      "CodigoExterno": "1320138-1-LP26",
+      "Nombre": "PROYECTO FNDR HABILITACIÓN BODEGA EDIFICIO EX MOL",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-08-11T10:00:00"
+    }
+  },
+  "2686-105-LR26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T20:50:20.737097",
+    "datos": {
+      "CodigoExterno": "2686-105-LR26",
+      "Nombre": "PRODUCCION Y DESARROLLO DE EVENTO FIESTAS PATRIAS",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-08-14T09:00:00"
+    }
+  },
+  "3149-18-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T20:50:20.737097",
+    "datos": {
+      "CodigoExterno": "3149-18-LE26",
+      "Nombre": "Servicios informáticos y asistencia contable",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-07-24T12:15:00"
+    }
+  },
+  "3340-11-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T20:50:20.737097",
+    "datos": {
+      "CodigoExterno": "3340-11-LE26",
+      "Nombre": "Servicio de suministro e instalación fosa séptica",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-07-21T15:35:00"
+    }
+  },
+  "3340-12-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T20:50:20.737097",
+    "datos": {
+      "CodigoExterno": "3340-12-LE26",
+      "Nombre": "SERVICIO DE INSTALACIÓN DE AIRE ACONDICIONADO",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-07-21T15:35:00"
+    }
+  },
+  "4803-25-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T20:50:20.737097",
+    "datos": {
+      "CodigoExterno": "4803-25-LE26",
+      "Nombre": "ADQUISICIÓN DE 13 ESTACIONES DE SEGREGACIÓN CUÁDRUPLES PARA SEPARACIÓN PRIMARIA DE RESIDUOS PARA EL SENADO EN LA COMUNA DE VALPARAÍSO",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-07-29T15:00:00"
+    }
+  },
+  "3289-11-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T21:08:10.642826",
+    "datos": {
+      "CodigoExterno": "3289-11-LE26",
+      "Nombre": "MANTENCIÓN SISTEMAS CLIMATIZACIÓN REPOLAG",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-07-27T20:00:00"
+    }
+  },
+  "924-18-LE26": {
+    "estado": "nuevo",
+    "primera_vez_visto": "2026-07-14T22:13:06.055174",
+    "datos": {
+      "CodigoExterno": "924-18-LE26",
+      "Nombre": "SERVICIO DE TRANSPORTE DE PERSONAL Y CARGA PARA EL  PROGRAMA DE HIDATIDOSIS R.M.",
+      "CodigoEstado": 5,
+      "FechaCierre": "2026-07-24T09:00:00"
     }
   }
 }

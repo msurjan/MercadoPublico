@@ -1,8 +1,8 @@
 # Credenciales - NUNCA subir el ticket real
 config/config.local.json
 
-# Datos personales del usuario (favoritos), no son codigo fuente
-data/favoritos.json
+# Datos personales del usuario (historial, estado de items), no son codigo fuente
+data/
 
 # Reportes generados (son output, no código fuente)
 output/*.html

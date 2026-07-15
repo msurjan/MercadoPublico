@@ -1,32 +1,22 @@
 """
 Orquesta una corrida de busqueda completa: Licitaciones + Compra Agil,
-filtradas por keyword, registrando todo en el almacen local (historial).
+registrando todo en el almacen local (historial).
 
 Esta funcion es el nucleo reutilizable: la llama ejecutar.bat (via
-main.py) Y el boton "Buscar ahora" del navegador (via servidor.py), asi
-que la logica vive en un solo lugar.
+main.py, solo para validar config) Y el boton "Buscar ahora" del
+navegador (via servidor.py), asi que la logica vive en un solo lugar.
+
+NOTA: Compra Agil ya NO se busca por keyword via la API (q=). Se trae
+TODO lo disponible en el rango de fechas/region configurado, y el
+filtrado por habilidad se hace en el navegador con los botones de
+busqueda rapida (presets) - evita duplicar trabajo entre "por habilidad"
+y "todo", que en la practica terminaban mostrando casi lo mismo.
 """
 from datetime import datetime, timezone
 
 from clientes import licitaciones_client, compra_agil_client
 from filtrado import filtrar_licitaciones
 import almacen
-
-
-def _filtrar_compra_agil_por_keywords(ticket: str, keywords: list, dias_hacia_atras: int, region, log) -> list:
-    vistos = {}
-    for kw in keywords:
-        try:
-            items = compra_agil_client.buscar_por_keyword(ticket, kw, dias_hacia_atras, region)
-            for item in items:
-                vistos[item.get("codigo")] = item
-        except RuntimeError as e:
-            log(f"  AVISO: {e}")
-            break
-        except Exception as e:
-            log(f"  AVISO: fallo la busqueda de '{kw}' ({e}). Se omite y se sigue con las demas.")
-            continue
-    return list(vistos.values())
 
 
 def ejecutar_busqueda(config: dict, keywords: list, ruta_estado_licitaciones: str,
@@ -48,7 +38,7 @@ def ejecutar_busqueda(config: dict, keywords: list, ruta_estado_licitaciones: st
 
     log(f"Keywords: {', '.join(keywords)}")
 
-    log("\n[1/4] Consultando Licitaciones activas...")
+    log("\n[1/3] Consultando Licitaciones activas...")
     try:
         licitaciones = licitaciones_client.obtener_licitaciones_activas(ticket)
         log(f"  -> {len(licitaciones)} licitaciones activas en total.")
@@ -70,32 +60,24 @@ def ejecutar_busqueda(config: dict, keywords: list, ruta_estado_licitaciones: st
         except Exception as e:
             log(f"  ERROR al consultar rango historico: {e}")
 
-    log("[2/4] Filtrando Licitaciones por tus keywords...")
+    log("[2/3] Filtrando Licitaciones por tus keywords...")
     licitaciones_filtradas = filtrar_licitaciones(licitaciones, keywords)
     log(f"  -> {len(licitaciones_filtradas)} coinciden con tus habilidades.")
     almacen.registrar_encontrados(ruta_estado_licitaciones, licitaciones, "CodigoExterno")
 
-    log("[3/4] Consultando Compra Agil (por keyword + completa)...")
-    ca_filtrada = _filtrar_compra_agil_por_keywords(ticket, keywords, dias_ca, region, log)
-    log(f"  -> {len(ca_filtrada)} coinciden con tus habilidades.")
-
+    log("[3/3] Consultando Compra Agil...")
     try:
-        ca_todas = compra_agil_client.obtener_todas_recientes(ticket, dias_ca, region)
+        ca_todas = compra_agil_client.obtener_todas_recientes(ticket, dias_ca, region, log=log)
         log(f"  -> {len(ca_todas)} Compra Agil totales en los ultimos {dias_ca} dias.")
     except Exception as e:
-        log(f"  ERROR al consultar Compra Agil (completa): {e}")
+        log(f"  ERROR al consultar Compra Agil: {e}")
         ca_todas = []
+    almacen.registrar_encontrados(ruta_estado_compra_agil, ca_todas, "codigo")
 
-    todas_ca_combinadas = {c.get("codigo"): c for c in ca_todas}
-    for c in ca_filtrada:
-        todas_ca_combinadas[c.get("codigo")] = c
-    almacen.registrar_encontrados(ruta_estado_compra_agil, list(todas_ca_combinadas.values()), "codigo")
-
-    log("[4/4] Busqueda completa.")
+    log("Busqueda completa.")
 
     return {
         "licitaciones_filtradas": licitaciones_filtradas,
-        "ca_filtrada": ca_filtrada,
         "ca_todas": ca_todas,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
